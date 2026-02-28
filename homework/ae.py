@@ -114,22 +114,41 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
 
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            raise NotImplementedError()
+            # self.encoder=PatchifyLinear(patch_size,latent_dim)
+            self.encoder = torch.nn.Sequential(
+            torch.nn.Conv2d(3, bottleneck,patch_size,patch_size, bias=False),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(bottleneck, latent_dim,kernel_size=1) 
+        )
+
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            raise NotImplementedError()
+            # return self.encoder(x)
+            return chw_to_hwc(self.encoder(hwc_to_chw(x)))
 
     class PatchDecoder(torch.nn.Module):
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            raise NotImplementedError()
+            # self.decoder=UnpatchifyLinear(patch_size,latent_dim)
+            self.decoder = torch.nn.Sequential(
+            torch.nn.Conv2d(latent_dim, bottleneck,kernel_size=1),
+            torch.nn.ReLU(),
+            torch.nn.ConvTranspose2d(
+                bottleneck, 3, 
+                kernel_size=patch_size, 
+                stride=patch_size, 
+                bias=False
+            )
+        )
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            raise NotImplementedError()
+            #  return  self.decoder(x)
+            return chw_to_hwc(self.decoder(hwc_to_chw(x)))
 
     def __init__(self, patch_size: int = 25, latent_dim: int = 128, bottleneck: int = 128):
         super().__init__()
-        raise NotImplementedError()
+        self.actualpatchencoder=self.PatchEncoder(patch_size,latent_dim,bottleneck)
+        self.actualpatchdecoder=self.PatchDecoder(patch_size,latent_dim,bottleneck)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
@@ -137,10 +156,13 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
         minimize (or even just visualize).
         You can return an empty dictionary if you don't have any additional terms.
         """
-        raise NotImplementedError()
+        encoded_image=self.encode(x)
+        decoded_image=self.decode(encoded_image)
+        return_loss = torch.nn.functional.mse_loss(decoded_image, x)
+        return decoded_image,{"reconstructed_loss":return_loss}
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        return self.actualpatchencoder(x)
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        return self.actualpatchdecoder(x)
