@@ -46,7 +46,13 @@ class Tokenizer(abc.ABC):
 class BSQ(torch.nn.Module):
     def __init__(self, codebook_bits: int, embedding_dim: int):
         super().__init__()
-        raise NotImplementedError()
+        self._codebook_bits = codebook_bits
+        self.embedding_dim = embedding_dim
+
+        # Project from AE space to binary bottleneck
+        self.project_down = torch.nn.Linear(embedding_dim, codebook_bits)
+        # Project from binary bottleneck back to AE space
+        self.project_up = torch.nn.Linear(codebook_bits, embedding_dim)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -55,14 +61,21 @@ class BSQ(torch.nn.Module):
         - L2 normalization
         - differentiable sign
         """
-        raise NotImplementedError()
+        # Project down
+        z = self.project_down(x)
+        
+        # L2 Normalization (crucial for spherical quantization)
+        z = torch.nn.functional.normalize(z, p=2, dim=-1)
+        
+        # Differentiable sign (using the provided diff_sign function)
+        return diff_sign(z)
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
         """
         Implement the BSQ decoder:
         - A linear up-projection into embedding_dim should suffice
         """
-        raise NotImplementedError()
+        return self.project_up(x)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.decode(self.encode(x))
@@ -97,19 +110,32 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
 
     def __init__(self, patch_size: int = 5, latent_dim: int = 128, codebook_bits: int = 10):
         super().__init__(patch_size=patch_size, latent_dim=latent_dim)
-        raise NotImplementedError()
+        self.bsq = BSQ(codebook_bits=codebook_bits, embedding_dim=latent_dim)
 
     def encode_index(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        # 1. Extract patches and pass through AE encoder
+       
+        # 2. Use BSQ to convert continuous embeddings to discrete indices
+        return self.bsq.encode_index(x)
 
     def decode_index(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        # 1. Map indices back to binary codes (-1, 1)
+        # z_codes = self.bsq._index_to_code(x)
+        # 2. Project back to embedding space
+        # z_feat = self.decode(x)
+        # 3. Decode features back to patches and combine
+        return self.bsq.decode_index(x)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        # Return the binarized codes (-1, 1) for training
+        # z = self.encoder(self.extract_patches(x))
+        z = super().encode(x)
+        return self.encode_index(z)
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+        # Take binarized codes and reconstruct the image
+        return super().decode(self.decode_index(x))
+        
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
@@ -127,4 +153,12 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
                 ...
               }
         """
-        raise NotImplementedError()
+        # Standard forward pass for training
+        z_bin = self.encode(x)
+        x_hat = self.decode(z_bin)
+        
+        # Calculate reconstruction loss (L2)
+        mse_loss = torch.nn.functional.mse_loss(x, x_hat)
+        
+        # Return the reconstruction and a dictionary containing the loss
+        return x_hat, {"MSE_loss": mse_loss}
