@@ -117,8 +117,10 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
             # self.encoder=PatchifyLinear(patch_size,latent_dim)
             self.encoder = torch.nn.Sequential(
             torch.nn.Conv2d(3, bottleneck,patch_size,patch_size, bias=False),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(bottleneck, latent_dim,kernel_size=1) 
+            torch.nn.GELU(),
+            torch.nn.Conv2d(bottleneck, bottleneck*2, kernel_size=1),
+            torch.nn.GELU(),
+            torch.nn.Conv2d(bottleneck*2, latent_dim,kernel_size=1) 
         )
 
 
@@ -132,7 +134,7 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
             # self.decoder=UnpatchifyLinear(patch_size,latent_dim)
             self.decoder = torch.nn.Sequential(
             torch.nn.Conv2d(latent_dim, bottleneck,kernel_size=1),
-            torch.nn.ReLU(),
+            torch.nn.GELU(),
             torch.nn.ConvTranspose2d(
                 bottleneck, 3, 
                 kernel_size=patch_size, 
