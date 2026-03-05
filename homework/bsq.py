@@ -116,7 +116,7 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
         # 1. Extract patches and pass through AE encoder
        
         # 2. Use BSQ to convert continuous embeddings to discrete indices
-        return self.bsq.encode_index(x)
+        return self.bsq.encode_index(super().encode(x))
 
     def decode_index(self, x: torch.Tensor) -> torch.Tensor:
         # 1. Map indices back to binary codes (-1, 1)
@@ -124,7 +124,7 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
         # 2. Project back to embedding space
         # z_feat = self.decode(x)
         # 3. Decode features back to patches and combine
-        return self.bsq.decode_index(x)
+        return self.bsq.decode_index(super().decode(x))
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         # Return the binarized codes (-1, 1) for training
