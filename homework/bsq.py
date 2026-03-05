@@ -130,11 +130,11 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
         # Return the binarized codes (-1, 1) for training
         # z = self.encoder(self.extract_patches(x))
         z = super().encode(x)
-        return self.encode_index(z)
+        return self.bsq.encode(z)
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
         # Take binarized codes and reconstruct the image
-        return super().decode(self.decode_index(x))
+        return super().decode(self.bsq.decode(x))
         
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
