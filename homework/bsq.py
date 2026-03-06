@@ -124,7 +124,9 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
         # 2. Project back to embedding space
         # z_feat = self.decode(x)
         # 3. Decode features back to patches and combine
-        return self.bsq.decode_index(super().decode(x))
+        return super().decode(self.bsq.decode_index(x))
+        
+        
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         # Return the binarized codes (-1, 1) for training
