@@ -110,7 +110,7 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
 
 
         # Map to logits and reshape back to (B, H, W, n_codebook)
-       logits = self.predictor(h)
+       logits = self.predictor(h).view(*orig_shape, -1)
       #  if len(orig_shape) == 3:
       #       logits = logits.view(B, orig_shape[1], orig_shape[2], self.n_codebook)
        return logits,{}
@@ -126,7 +126,7 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
        for i in range(h):
             for j in range(w):
                 with torch.no_grad():
-                    logits = self.forward(generated)
+                    logits,_ = self.forward(generated)
                     # Get probabilities for the current pixel (i, j)
                     probs = torch.softmax(logits[:, i, j, :], dim=-1)
                     next_token = torch.multinomial(probs, num_samples=1)
